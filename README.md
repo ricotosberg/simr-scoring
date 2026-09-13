@@ -1,6 +1,6 @@
-# SimR v26
+# SimR Scoring
 
-This is the maintainable baseline refactor of SimR v25: Vite + vanilla JavaScript modules, Supabase, and Netlify Functions. It intentionally preserves the existing UI and league behavior while extracting authoritative domain rules and server-only operations.
+This is the maintainable SimR source project: Vite + vanilla JavaScript modules, Supabase, and Netlify Functions. It preserves the existing UI and league behavior while progressively extracting authoritative domain rules and server-only operations.
 
 ## Local commands
 
@@ -13,7 +13,7 @@ npm run build
 
 Create `.env` from `.env.example` before running the app. See `docs/DEPLOYMENT.md` for the safe live migration order and `docs/ARCHITECTURE.md` for ownership rules.
 
-## What changed from v25
+## Structured-project baseline
 
 - AC is the only active series in the application; existing Forza data is not deleted.
 - CSS, configuration, API access, league rules, and server functions are separated.
