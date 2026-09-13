@@ -29,7 +29,7 @@ flowchart TD
   Extract -->|server-held key| Anthropic["Anthropic"]
 ```
 
-The Supabase publishable key is expected in the browser. The service-role key, shared admin password, session signing secret, and Anthropic key must never have a `VITE_` prefix or appear in frontend files.
+The Supabase publishable key is expected in the browser. The server secret key, shared admin password, session signing secret, and Anthropic key must never have a `VITE_` prefix or appear in frontend files.
 
 ## Current migration boundary
 
