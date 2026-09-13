@@ -2,7 +2,7 @@
 
 ## Scope
 
-SimR v26 is an Assetto Corsa league application. The existing Forza database rows are left intact, but the application is configured to one AC series through `VITE_AC_SERIES_ID`. Championship scoring remains independent from future driver skill ratings.
+SimR is an Assetto Corsa league application. The existing Forza database rows are left intact, but the application is configured to one AC series through `VITE_AC_SERIES_ID`. Championship scoring remains independent from future driver skill ratings.
 
 ## Sources of truth
 
@@ -33,7 +33,7 @@ The Supabase publishable key is expected in the browser. The service-role key, s
 
 ## Current migration boundary
 
-The v25 interface still contains inline event attributes and a large `src/app.js`. v26 exposes a temporary compatibility surface on `window` so behavior can be moved one feature at a time without a rewrite. New code should not add to that surface.
+The original single-file interface still contains inline event attributes and a large `src/app.js`. The structured project exposes a temporary compatibility surface on `window` so behavior can be moved one feature at a time without a rewrite. New code should not add to that surface.
 
 The next extraction slices should be:
 
