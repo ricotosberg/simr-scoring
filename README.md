@@ -59,7 +59,7 @@ The shared implementations of these rules live in `src/domain/` and are covered 
 | Screenshot extraction | Anthropic Claude | Converts race screenshots into reviewable result rows |
 | Hosting and deployment | Netlify + GitHub | Builds and publishes the site from version-controlled source |
 
-The browser never receives the Supabase service-role key, administrator password, session-signing secret, or Anthropic API key. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module ownership and migration boundaries.
+The browser never receives the Supabase secret key, administrator password, session-signing secret, or Anthropic API key. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for module ownership and migration boundaries.
 
 ## Project structure
 
