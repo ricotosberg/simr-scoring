@@ -1,4 +1,4 @@
--- Run only after the v26 Netlify admin functions have been deployed and tested.
+-- Run only after the Netlify admin functions have been deployed and tested.
 -- This leaves all league data publicly readable while making every write server-only.
 
 begin;
