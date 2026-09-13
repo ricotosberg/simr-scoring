@@ -1,3 +1,5 @@
+import { hasValidSession } from './_shared/admin-session.mjs';
+
 const ALLOWED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const ALLOWED_SESSION_KINDS = new Set(['qualifying', 'grid', 'race']);
 
@@ -33,6 +35,7 @@ Return only a JSON array sorted by position. Each object must have:
 
 export const handler = async event => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
+  if (!hasValidSession(event.headers)) return json(401, { error: 'Admin session required' });
   if (!process.env.ANTHROPIC_API_KEY) return json(500, { error: 'AI extraction is not configured' });
 
   let input;
