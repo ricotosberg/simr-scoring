@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimR — Sim Racing League</title>
+<link rel="stylesheet" href="/src/styles/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">SIM<span>R</span></div>
+  <div style="position:relative">
+    <button class="admin-btn" id="admin-menu-btn" onclick="toggleAdminMenu()">🔒 Admin</button>
+    <div class="admin-dropdown" id="admin-dropdown">
+      <!-- logged out state -->
+      <div id="admin-logged-out">
+        <div class="admin-dropdown-label">Admin access</div>
+        <button class="admin-dropdown-item" onclick="showPage('admin-login');closeAdminMenu()">Sign in</button>
+      </div>
+      <!-- logged in state -->
+      <div id="admin-logged-in" style="display:none">
+        <div class="admin-dropdown-label">Admin menu</div>
+        <button class="admin-dropdown-item" id="amenu-results" onclick="showAdminPage('enter-results');closeAdminMenu()">🏁 Enter Results</button>
+        <button class="admin-dropdown-item" id="amenu-seasons" onclick="showAdminPage('season-setup');closeAdminMenu()">📅 Event Creator</button>
+        <button class="admin-dropdown-item" id="amenu-tracks" onclick="showAdminPage('tracks');closeAdminMenu()">🗺 Track & Car Registry</button>
+        <button class="admin-dropdown-item" id="amenu-scoring" onclick="showAdminPage('scoring');closeAdminMenu()">⚙ Scoring</button>
+        <button class="admin-dropdown-item" id="amenu-drivers-admin" onclick="showAdminPage('drivers-admin');closeAdminMenu()">👤 Manage Drivers</button>
+        <button class="admin-dropdown-item" id="amenu-share" onclick="showAdminPage('share');closeAdminMenu()">📋 Share Results</button>
+        <div class="admin-dropdown-divider"></div>
+        <button class="admin-dropdown-item" id="theme-toggle-btn" onclick="toggleTheme();closeAdminMenu()">🇺🇸 USA Light</button>
+        <div class="admin-dropdown-divider"></div>
+        <button class="admin-dropdown-item" onclick="adminLogout();closeAdminMenu()" style="color:var(--simr-hint)">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav" id="main-nav">
+  <div class="nvb active" onclick="navTo(this,'dashboard')">Dashboard</div>
+  <div class="nvb" onclick="navTo(this,'standings')">Standings</div>
+  <div class="nvb" onclick="navTo(this,'events')">Results</div>
+  <div class="nvb" onclick="navTo(this,'drivers')">Drivers</div>
+  <div class="nvb" onclick="navTo(this,'records')">Records</div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+
+  <!-- LAST EVENT + NEXT EVENT -->
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card"><div class="card-title">Last event</div><div id="dash-last-event"><div class="loading">Loading...</div></div></div>
+    <div class="card"><div class="card-title">Next event</div><div id="dash-next-event"><div class="loading">Loading...</div></div></div>
+  </div>
+
+  <!-- RECENT EVENT FULL RESULTS -->
+  <div class="card" style="margin-bottom:14px">
+    <div id="dash-recent-results"><div class="loading">Loading...</div></div>
+  </div>
+
+  <!-- CHAMPIONSHIP TOP 5 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div class="card-title" style="margin-bottom:2px">Championship top 5</div>
+        <div id="dash-season-name" style="font-size:11px;color:var(--simr-muted)"></div>
+      </div>
+      <button class="btn btn-sm" onclick="navTo(document.querySelectorAll('.nvb')[1],'standings')" style="font-size:11px;padding:4px 10px">Full standings →</button>
+    </div>
+    <div id="dash-standings"><div class="loading">Loading...</div></div>
+  </div>
+</div>
+<!-- STANDINGS -->
+<div class="page" id="page-standings">
+  <div class="page-header">
+    <div><div class="page-title">Championship standings</div><div class="page-sub" id="standings-sub"></div></div>
+    <select id="standings-season-sel" style="width:220px" onchange="loadStandings()"></select>
+  </div>
+
+  <!-- Season header -->
+  <div id="standings-season-header" style="margin-bottom:16px"></div>
+
+  <!-- Standings table -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+    <div style="overflow-x:auto" id="standings-body"><div class="loading" style="padding:20px">Loading...</div></div>
+  </div>
+
+  <!-- Championship points table -->
+  <div class="card">
+    <div class="card-title">Championship points table</div>
+    <div id="standings-rounds"></div>
+  </div>
+  <div style="margin-top:12px;padding:10px 0;font-size:11px;color:var(--simr-hint);border-top:1px solid var(--simr-border);line-height:1.7">
+    <strong style="color:var(--simr-muted)">Efficiency % explained</strong> — Points scored ÷ maximum points available across all races entered. Badges are based on career efficiency across all seasons. Minimum 5 race starts required for a badge.
+  </div>
+</div>
+<!-- EVENTS / RESULTS -->
+<div class="page" id="page-events">
+  <div class="page-header">
+    <div><div class="page-title">Results</div><div class="page-sub" id="events-sub">Race history for this series</div></div>
+  </div>
+
+  <!-- Stats bar -->
+  <div id="results-stats-bar" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;padding:14px 18px;background:var(--simr-surface);border:1px solid var(--simr-border);border-radius:8px">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <!-- Search -->
+  <div style="margin-bottom:14px;position:relative">
+    <input type="text" id="results-search" placeholder="Search seasons, tracks, events..." 
+      style="width:100%;padding:10px 14px;padding-left:36px;background:var(--simr-surface);border:1px solid var(--simr-border);border-radius:6px;color:var(--simr-text);font-size:13px"
+      oninput="filterResults()">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--simr-hint);font-size:14px">🔍</span>
+  </div>
+
+  <!-- Event detail panel — ABOVE the list -->
+  <div id="event-detail" style="margin-bottom:16px"></div>
+
+  <!-- Season/event list -->
+  <div id="results-list"><div class="loading">Loading...</div></div>
+</div>
+<!-- DRIVERS -->
+<div class="page" id="page-drivers">
+  <div class="page-header"><div><div class="page-title" id="drivers-title">Drivers</div><div class="page-sub">Click a driver card to view their full profile</div></div></div>
+  <!-- Detail panel ABOVE cards -->
+  <div id="driver-detail" style="display:none;margin-bottom:20px"></div>
+  <!-- Driver cards grid -->
+  <div class="g3" id="driver-cards"><div class="loading">Loading...</div></div>
+</div>
+
+<!-- RECORDS -->
+<div class="page" id="page-records">
+  <div class="page-header"><div><div class="page-title" id="records-title">Records</div><div class="page-sub" id="records-sub"></div></div></div>
+  <div class="rec-section-label">All-time records</div>
+  <div class="g4" id="rec-heroes" style="margin-bottom:20px"><div class="loading">Loading...</div></div>
+  <div class="rec-section-label">Top 3 all time</div>
+  <div id="rec-top3" style="margin-bottom:20px"><div class="loading">Loading...</div></div>
+  <div class="rec-section-label">Lap records</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <input class="search-input" type="text" placeholder="Search track..." oninput="filterLapRecords(this.value)" style="width:220px">
+      <span style="font-size:11px;color:var(--simr-hint)">Records from race sessions only</span>
+    </div>
+    <div id="lap-records-table"><div class="loading">Loading...</div></div>
+  </div>
+  <div class="rec-section-label">All-time driver stats</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+    <input class="search-input" type="text" placeholder="Search driver..." oninput="filterAllTime(this.value)">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="filter-btn active" onclick="filterAllTimeClass(this,'all')">All</button>
+      <button class="filter-btn" onclick="filterAllTimeClass(this,'P')"><span class="bp">P</span></button>
+      <button class="filter-btn" onclick="filterAllTimeClass(this,'G')"><span class="bg">G</span></button>
+      <button class="filter-btn" onclick="filterAllTimeClass(this,'S')"><span class="bs">S</span></button>
+      <button class="filter-btn" onclick="filterAllTimeClass(this,'B')"><span class="bb">B</span></button>
+    </div>
+    <span style="font-size:11px;color:var(--simr-hint)">Click column to sort</span>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th onclick="sortAllTime('rank')" style="width:32px">Pos</th>
+        <th onclick="sortAllTime('name')" style="min-width:130px">Driver</th>
+        <th onclick="sortAllTime('cls')" style="width:60px">Class</th>
+        <th onclick="sortAllTime('championships')" style="width:42px">🏆</th>
+        <th onclick="sortAllTime('wins')" style="width:42px">Wins</th>
+        <th onclick="sortAllTime('podiums')" style="width:42px">Pods</th>
+        <th onclick="sortAllTime('top5s')" style="width:42px">Top5</th>
+        <th onclick="sortAllTime('top10s')" style="width:42px">Top10</th>
+        <th onclick="sortAllTime('poles')" style="width:42px">Poles</th>
+        <th onclick="sortAllTime('fastestLaps')" style="width:42px">FL</th>
+        <th onclick="sortAllTime('round_wins')" style="width:42px">RWins</th>
+        
+        <th onclick="sortAllTime('starts')" style="width:50px">Starts</th>
+        <th onclick="sortAllTime('eff')" style="width:60px">Career%</th>
+        <th onclick="sortAllTime('avg')" style="width:60px">Avg Fin</th>
+      </tr></thead>
+      <tbody id="alltime-body"><tr><td colspan="14" class="loading">Loading...</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ENTER RESULTS -->
+<div class="page" id="page-enter-results">
+  <div class="page-header"><div><div class="page-title">Enter results</div><div class="page-sub">Admin only</div></div></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Select event & session</div>
+    <div style="font-size:12px;color:var(--simr-muted);margin-bottom:12px">All events are created in Season & Events setup. Select one below to enter results.</div>
+    <div class="g2" style="margin-bottom:10px">
+      <div>
+        <label class="form-label">Event</label>
+        <select id="er-event-select" onchange="onEREventSelect()">
+          <option value="">— select event —</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Session</label>
+        <select id="er-session-type" onchange="updateResultsSessionLabel()">
+          <option value="">— select event first —</option>
+        </select>
+      </div>
+    </div>
+    <div id="er-event-info" style="font-size:12px;color:var(--simr-muted);display:none;padding:6px 0"></div>
+  </div>
+
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Screenshot extraction</div>
+    <div style="font-size:12px;color:var(--simr-muted);margin-bottom:12px">Select an event and session above, then upload a screenshot to extract results.</div>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('img-input').click()" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+      <div style="font-size:28px;color:var(--simr-hint);margin-bottom:8px">📷</div>
+      <div style="font-size:13px;color:var(--simr-muted)">Drop results screenshot or click to upload</div>
+      <div style="font-size:11px;color:var(--simr-hint);margin-top:4px">AI matches driver names against registered roster</div>
+    </div>
+    <input type="file" id="img-input" accept="image/*" style="display:none" onchange="handleImg(event)">
+    <img id="img-preview" style="max-width:100%;border-radius:6px;margin-bottom:12px;display:none">
+    <div id="ai-status" style="font-size:13px;color:var(--simr-muted);margin-bottom:8px"></div>
+    <div id="ai-result" style="display:none;background:var(--simr-surface2);border-radius:4px;padding:10px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:160px;overflow-y:auto;margin-bottom:10px"></div>
+    <button id="btn-apply-ai" class="btn btn-sm" style="display:none" onclick="applyAI()">Apply extracted results →</button>
+  </div>
+
+  <!-- Grid builder — only shown for Grid sessions -->
+  <div id="grid-builder-section" style="display:none;margin-bottom:14px">
+    <div class="card">
+      <div class="card-title">Build grid from existing session</div>
+      <div style="font-size:12px;color:var(--simr-muted);margin-bottom:10px">Load a previous session's results to use as the starting grid. Reorder or modify before saving.</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label class="form-label">Load from session</label>
+          <select id="grid-source-session" style="width:100%">
+            <option value="">— select source session —</option>
+          </select>
+        </div>
+        <button class="btn btn-sm" onclick="loadGridFromSession()">Load</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin-bottom:0" id="results-session-label">Race results — review before saving</div>
+      <button class="btn btn-sm" onclick="addResultRow()">+ Add row</button>
+    </div>
+    <div id="unmatched-banner" style="display:none;background:#2a1a00;border:1px solid #804000;border-radius:4px;padding:8px 12px;font-size:12px;color:var(--simr-amber);margin-bottom:8px"></div>
+    <div style="overflow-x:auto"><table style="table-layout:auto;min-width:600px">
+      <thead><tr>
+        <th style="width:65px;padding:10px 14px" id="col-pos-label">Pos</th>
+        <th style="min-width:220px;padding:10px 14px">Driver</th>
+        <th style="width:140px;padding:10px 14px" id="col-time-label">Lap Time</th>
+        <th style="width:60px;padding:10px 14px" id="col-dnf-label">DNF</th>
+        <th style="width:100px;padding:10px 14px">Status</th>
+        <th style="width:48px;padding:10px 14px"></th>
+      </tr></thead>
+      <tbody id="results-rows"></tbody>
+    </table></div>
+    <!-- Multi-car assignment step — shown when event is_multi_car -->
+    <div id="er-car-assign-wrap" style="display:none;margin-top:14px;padding:14px;background:var(--simr-surface2);border:1px solid var(--simr-border);border-radius:6px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px">🚗 Multi-car event — assign each driver's car before saving</div>
+      <div id="er-car-assign-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-red" onclick="saveResults()">💾 Save results</button>
+      <button class="btn" onclick="clearResults()">Clear</button>
+      <span id="save-status" style="font-size:12px;color:var(--simr-muted)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- SCORING -->
+<div class="page" id="page-scoring">
+  <div class="page-header"><div><div class="page-title">Scoring configuration</div><div class="page-sub">Per season</div></div></div>
+  <div style="margin-bottom:14px"><label class="form-label">Configure for season</label><select id="scoring-season-sel" style="width:240px" onchange="loadScoringConfig()"></select></div>
+  <div class="g2">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Saved presets</div>
+        <div id="saved-preset-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <span style="font-size:12px;color:var(--simr-hint)">No saved presets yet</span>
+        </div>
+        <button class="btn btn-sm" onclick="saveScorePreset()">+ Save current as preset</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Points per finish position</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn btn-sm" onclick="applyPreset('f1')">F1 style</button>
+          <button class="btn btn-sm" onclick="applyPreset('iracing')">iRacing style</button>
+          <button class="btn btn-sm" onclick="applyPreset('simple')">Simple 10-6-4</button>
+          <button class="btn btn-sm" onclick="applyPreset('custom100')">100-80-60...</button>
+        </div>
+        <div id="points-rows"></div>
+        <button class="btn btn-sm" style="margin-top:10px" onclick="addPointsRow()">+ Add position</button>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Classification thresholds</div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+          <span class="bp">PLATINUM</span><div style="height:1px;background:var(--simr-border)"></div>
+          <div style="display:flex;align-items:center;gap:4px"><input type="number" id="thresh-p" value="72" style="width:60px"> <span style="font-size:11px;color:var(--simr-muted)">%+</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+          <span class="bg">GOLD</span><div style="height:1px;background:var(--simr-border)"></div>
+          <div style="display:flex;align-items:center;gap:4px"><input type="number" id="thresh-g" value="55" style="width:60px"> <span style="font-size:11px;color:var(--simr-muted)">%+</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-bottom:8px">
+          <span class="bs">SILVER</span><div style="height:1px;background:var(--simr-border)"></div>
+          <div style="display:flex;align-items:center;gap:4px"><input type="number" id="thresh-s" value="35" style="width:60px"> <span style="font-size:11px;color:var(--simr-muted)">%+</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center">
+          <span class="bb">BRONZE</span><div style="height:1px;background:var(--simr-border)"></div>
+          <span style="font-size:12px;color:var(--simr-muted)">Below Silver</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Drop round</div>
+        <div style="font-size:13px;color:var(--simr-muted);line-height:1.6;margin-bottom:10px">Worst single event dropped from championship total. Driver must have missed <strong style="color:var(--simr-text)">1 or fewer</strong> races all season.</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="drop-enabled" checked> Enable drop round</label>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:14px;display:flex;gap:8px">
+    <button class="btn btn-red" onclick="saveScoringConfig()">💾 Save config</button>
+    <span id="scoring-saved" style="font-size:12px;color:var(--simr-green);display:none;padding:8px">Saved!</span>
+  </div>
+</div>
+
+<!-- SEASON SETUP -->
+<div class="page" id="page-season-setup">
+  <div class="page-header"><div><div class="page-title">Event Creator</div><div class="page-sub">Create seasons, configure and manage events</div></div></div>
+
+  <div class="g2" style="margin-bottom:14px;align-items:start">
+
+    <!-- LEFT: Season creator + Seasons ledger -->
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Create season</div>
+        <div style="margin-bottom:10px"><label class="form-label">Season name</label><input type="text" id="setup-name" placeholder="AC Season 2"></div>
+        <div style="margin-bottom:10px"><label class="form-label">Season number</label><input type="number" id="setup-num" placeholder="2"></div>
+        <div style="margin-bottom:14px"><label class="form-label">Car / class</label><input type="text" id="setup-car" placeholder="Porsche 992 Cup"></div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:14px"><input type="checkbox" id="setup-active"> Set as active season</label>
+        <button class="btn btn-red" onclick="createSeason()">Create season</button>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="card-title" style="margin-bottom:0">Event Creator</div>
+          <span style="font-size:11px;color:var(--simr-muted)">Completed seasons collapse</span>
+        </div>
+        <div id="seasons-list-body"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Unified Event Editor -->
+    <div>
+      <div class="card" id="event-editor-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:0" id="event-editor-title">New Event</div>
+          <button class="btn btn-sm" onclick="resetEventEditor()" style="font-size:11px">+ New event</button>
+        </div>
+
+        <!-- Event type -->
+        <div style="margin-bottom:12px">
+          <label class="form-label">Event type</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;padding:6px 12px;border:1px solid var(--simr-border);border-radius:6px;background:var(--simr-surface2)">
+              <input type="radio" name="ev-type" value="season" checked onchange="toggleEvType()"> 🏆 Season round
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;padding:6px 12px;border:1px solid var(--simr-border);border-radius:6px;background:var(--simr-surface2)">
+              <input type="radio" name="ev-type" value="special" onchange="toggleEvType()"> ⭐ Special event
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;padding:6px 12px;border:1px solid var(--simr-border);border-radius:6px;background:var(--simr-surface2)">
+              <input type="radio" name="ev-type" value="exhibition" onchange="toggleEvType()"> 🎪 Exhibition
+            </label>
+          </div>
+        </div>
+
+        <!-- Season selector (hidden for non-season events) -->
+        <div id="ev-season-wrap" style="margin-bottom:10px">
+          <label class="form-label">Season</label>
+          <select id="setup-ev-season" style="width:100%"></select>
+        </div>
+
+        <!-- Name -->
+        <div style="margin-bottom:10px">
+          <label class="form-label">Event name</label>
+          <input type="text" id="setup-ev-name" placeholder="Round 1, Altezza Cup...">
+        </div>
+
+        <!-- Date -->
+        <div style="margin-bottom:10px">
+          <label class="form-label">Date</label>
+          <input type="date" id="setup-ev-date">
+        </div>
+
+        <!-- Track -->
+        <div style="margin-bottom:10px">
+          <label class="form-label">Circuit</label>
+          <select id="setup-ev-circuit" style="width:100%" onchange="loadLayoutsForCircuit('setup-ev-circuit','setup-ev-layout')">
+            <option value="">— select circuit —</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px">
+          <label class="form-label">Layout</label>
+          <select id="setup-ev-layout" style="width:100%"><option value="">— select layout —</option></select>
+        </div>
+
+        <!-- Car -->
+        <div style="margin-bottom:14px">
+          <label class="form-label">Car setup</label>
+          <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="ev-car-mode" value="single" checked onchange="toggleCarMode()"> Single car</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="ev-car-mode" value="multi" onchange="toggleCarMode()"> Multi-car event</label>
+          </div>
+          <div id="ev-car-single-wrap">
+            <select id="setup-ev-car" class="car-select" style="width:100%"><option value="">— select car (optional) —</option></select>
+          </div>
+          <div id="ev-car-multi-wrap" style="display:none">
+            <div style="font-size:11px;color:var(--simr-muted);margin-bottom:8px">Select all cars competing in this event</div>
+            <div id="ev-multi-car-checks" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding:8px;background:var(--simr-surface2);border:1px solid var(--simr-border);border-radius:4px">
+              <div style="color:var(--simr-hint);font-size:12px">No cars in registry</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event group (one-off events only) -->
+        <div id="ev-group-wrap" style="display:none;margin-bottom:14px">
+          <label class="form-label">Event group</label>
+          <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="ev-group-mode" value="none" checked onchange="toggleEvGroupMode()"> No group</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="ev-group-mode" value="new" onchange="toggleEvGroupMode()"> New group</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="ev-group-mode" value="existing" onchange="toggleEvGroupMode()"> Add to existing</label>
+          </div>
+          <div id="ev-group-new-wrap" style="display:none">
+            <input type="text" id="ev-group-name" placeholder="e.g. Freedom Cup 2026" style="width:100%;background:var(--simr-surface2);border:1px solid var(--simr-border);border-radius:4px;padding:6px 8px;color:var(--simr-text);font-size:12px">
+          </div>
+          <div id="ev-group-existing-wrap" style="display:none">
+            <select id="ev-group-select" style="width:100%">
+              <option value="">— select group —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Scoring — one-off events only -->
+        <div id="ev-scoring-wrap" style="display:none;margin-bottom:14px">
+          <label class="form-label">Points structure</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button class="btn btn-sm" type="button" onclick="applyEvScorePreset('f1')">F1</button>
+            <button class="btn btn-sm" type="button" onclick="applyEvScorePreset('iracing')">iRacing</button>
+            <button class="btn btn-sm" type="button" onclick="applyEvScorePreset('simple')">Simple</button>
+            <button class="btn btn-sm" type="button" onclick="applyEvScorePreset('custom100')">Custom 100</button>
+          </div>
+          <div id="ev-saved-preset-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+          <div id="ev-scoring-rows" style="max-height:160px;overflow-y:auto"><div style="color:var(--simr-hint);font-size:12px">Select a preset above or load from existing event</div></div>
+        </div>
+
+        <!-- Director's notes -->
+        <div style="margin-bottom:14px">
+          <label class="form-label">Race director's notes (optional)</label>
+          <textarea id="setup-ev-notes" rows="2" style="width:100%;background:var(--simr-surface2);border:1px solid var(--simr-border);border-radius:4px;padding:8px;color:var(--simr-text);font-size:12px;resize:vertical" placeholder="Incidents, penalties, technical DNFs..."></textarea>
+        </div>
+
+        <input type="hidden" id="ev-editor-id">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-red" onclick="saveEventEditor()">💾 Save event</button>
+          <button class="btn btn-sm" onclick="resetEventEditor()">Cancel</button>
+          <span id="ev-editor-status" style="font-size:12px;color:var(--simr-muted)"></span>
+        </div>
+      </div>
+
+      <!-- Season entrants -->
+      <div class="card" style="margin-top:14px;border-color:var(--simr-border2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleSection('entrants-section')">
+          <div class="card-title" style="margin-bottom:0">Season entrants & cars</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <select id="entrants-season-sel" onchange="loadEntrantsForSeason()" style="width:180px" onclick="event.stopPropagation()"></select>
+            <span id="entrants-section-arrow" style="color:var(--simr-muted)">▶</span>
+          </div>
+        </div>
+        <div id="entrants-section" style="display:none;margin-top:12px">
+          <div style="font-size:12px;color:var(--simr-muted);margin-bottom:8px">Auto-populated from results. Used for multi-class seasons.</div>
+          <div id="season-entrants-list"><div style="color:var(--simr-muted);font-size:12px">Select a season above</div></div>
+        </div>
+      </div>
+
+      <!-- Exhibition car assignment -->
+      <div class="card" style="margin-top:14px;border-color:var(--simr-border2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleSection('exhibition-section')">
+          <div class="card-title" style="margin-bottom:0">One-off event per-driver cars</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <select id="exhibition-event-sel" onchange="loadExhibitionEntrants()" style="width:180px" onclick="event.stopPropagation()">
+              <option value="">— select event —</option>
+            </select>
+            <span id="exhibition-section-arrow" style="color:var(--simr-muted)">▶</span>
+          </div>
+        </div>
+        <div id="exhibition-section" style="display:none;margin-top:12px">
+          <div style="font-size:12px;color:var(--simr-muted);margin-bottom:8px">Only needed when drivers use different cars in the same exhibition.</div>
+          <div id="exhibition-entrants-list"><div style="color:var(--simr-muted);font-size:12px">Select an exhibition above</div></div>
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div class="card" style="margin-top:14px;border-color:var(--simr-border2)">
+        <div class="card-title">Quick links</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="showAdminPage('tracks')" style="font-size:12px">🗺 Track & Car Registry</button>
+          <button class="btn btn-sm" onclick="showAdminPage('drivers-admin')" style="font-size:12px">👤 Manage Drivers</button>
+        </div>
+      </div>
+
+      <!-- Session builder (shown when Sessions button clicked) -->
+      <div class="card" id="session-builder-card" style="display:none;margin-top:14px;border-color:var(--simr-amber)">
+        <div class="card-title">Build sessions — <span id="session-builder-event-name"></span></div>
+        <div style="font-size:12px;color:var(--simr-muted);margin-bottom:14px">Click slots to cycle type. Race slots have a points multiplier.</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <div>
+            <label class="form-label">Number of sessions</label>
+            <input type="number" id="session-count-input" min="1" max="16" value="4" style="width:70px" onchange="renderSequencer()">
+          </div>
+          <div style="font-size:11px;color:var(--simr-muted);padding-top:16px">
+            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px"><span class="tag tquali" style="margin:0">Q</span> Qualifying</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px"><span class="tag tgrid" style="margin:0">G</span> Grid</span>
+            <span style="display:inline-flex;align-items:center;gap:4px"><span class="tag tr1" style="margin:0">R</span> Race</span>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="multi-layout-toggle" onchange="renderSequencer()" style="accent-color:var(--simr-red)">
+            Different layout per session (e.g. chicane / no chicane)
+          </label>
+        </div>
+        <div id="sequencer-slots" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div id="sequencer-preview" style="font-size:12px;color:var(--simr-muted);margin-bottom:14px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-red btn-sm" onclick="saveSessionBuilder()">💾 Save sessions</button>
+          <button class="btn btn-sm" onclick="cancelSessionBuilder()">Cancel</button>
+        </div>
+        <div id="session-builder-status" style="font-size:12px;color:var(--simr-muted);margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="page" id="page-admin-login">
+  <div style="max-width:320px;margin:60px auto">
+    <div class="card">
+      <div class="card-title">Admin access</div>
+      <div style="margin-bottom:12px"><label class="form-label">Password</label><input type="password" id="admin-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-red" style="width:100%" onclick="doLogin()">Sign in</button>
+      <div id="login-err" style="font-size:12px;color:var(--simr-red);margin-top:8px;display:none">Incorrect password</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKS PAGE -->
+<div class="page" id="page-tracks">
+  <div class="page-header"><div><div class="page-title">Track & Car Registry</div><div class="page-sub">Manage circuits, layouts and cars — used for all event setup</div></div></div>
+  
+  <!-- TRACK REGISTRY -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Track registry</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+      <div><label class="form-label">Circuit name</label><input type="text" id="new-circuit-name" placeholder="Silverstone" list="circuit-suggestions"><datalist id="circuit-suggestions"></datalist></div>
+      <div><label class="form-label">Country</label><input type="text" id="new-circuit-country" placeholder="United Kingdom"></div>
+      <div><label class="form-label">Layout name</label><input type="text" id="new-layout-name" placeholder="Grand Prix"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-red btn-sm" onclick="addCircuitLayout()">Add</button></div>
+    </div>
+    <div style="font-size:11px;color:var(--simr-muted);margin-bottom:14px">Same circuit name + new layout = adds layout to existing circuit.</div>
+    <div id="circuit-registry-list" style="max-height:400px;overflow-y:auto"></div>
+  </div>
+
+  <!-- CAR REGISTRY -->
+  <div class="card">
+    <div class="card-title">Car registry</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+      <div><label class="form-label">Car name</label><input type="text" id="new-car-name" placeholder="Toyota Altezza Cup '04"></div>
+      <div><label class="form-label">Class / era (optional)</label><input type="text" id="new-car-class" placeholder="Touring Car, GT3, Vintage..."></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-red btn-sm" onclick="addCar()">Add</button></div>
+    </div>
+    <div id="car-registry-list" style="max-height:400px;overflow-y:auto"><div class="loading">Loading...</div></div>
+  </div>
+</div>
+
+<!-- DRIVERS ADMIN PAGE -->
+<div class="page" id="page-drivers-admin">
+  <div class="page-header"><div><div class="page-title">Manage Drivers</div><div class="page-sub">Add, edit, or remove drivers from the roster</div></div></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Add driver</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 80px auto;gap:8px;align-items:end">
+      <div><label class="form-label">Gamertag (match key)</label><input type="text" id="new-driver-name" placeholder="GamerTag123"></div>
+      <div><label class="form-label">Display name</label><input type="text" id="new-driver-display" placeholder="Short name"></div>
+      <div><label class="form-label">Car #</label><input type="text" id="new-driver-num" placeholder="7"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-red btn-sm" onclick="addDriver()">Add</button></div>
+    </div>
+    <div style="font-size:11px;color:var(--simr-muted);margin-top:6px">Gamertag matches screenshot results. Display name shows in the UI.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Driver roster</div>
+    <table><thead><tr><th>Gamertag</th><th>Display name</th><th>Car #</th><th>Aliases</th><th></th></tr></thead>
+    <tbody id="driver-roster-body"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody></table>
+  </div>
+</div>
+
+<!-- SHARE RESULTS PAGE -->
+<div class="page" id="page-share">
+  <div class="page-header">
+    <div><div class="page-title">Share Results</div><div class="page-sub">Screenshot-ready views for Discord</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div>
+        <label class="form-label">Season</label>
+        <select id="share-season-sel" style="width:220px" onchange="loadShareEvents()"></select>
+      </div>
+      <div>
+        <label class="form-label">Round results</label>
+        <select id="share-event-sel" style="width:220px" onchange="renderShareViews()">
+          <option value="">— select event —</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Max width</label>
+        <select id="share-width-sel" style="width:120px" onchange="document.getElementById('share-view').style.maxWidth=this.value">
+          <option value="100%">Full width</option>
+          <option value="1280px">1280px</option>
+          <option value="1080px" selected>1080px</option>
+          <option value="900px">900px</option>
+          <option value="720px">720px</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Layout style</label>
+        <div style="display:flex;gap:4px">
+          <button id="share-style-classic" class="btn btn-sm" onclick="setShareStyle('classic')" style="background:var(--simr-red);color:#fff;border-color:var(--simr-red)">Classic</button>
+          <button id="share-style-blocks" class="btn btn-sm" onclick="setShareStyle('blocks')">Race Blocks</button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Championship table</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;height:28px">
+          <input type="checkbox" id="share-drop-toggle" checked onchange="renderShareViews()" style="accent-color:var(--simr-red)">
+          Apply drop round
+        </label>
+      </div>
+    </div>
+  </div>
+  <div id="share-view" style="max-width:1080px">
+    <div style="color:var(--simr-muted);font-size:13px;padding:20px 0">Select a season and event above to generate the share view.</div>
+  </div>
+</div>
+
+<!-- DRIVER STATS EDITOR MODAL -->
+<div id="driver-stats-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--simr-surface);border:1px solid var(--simr-border);border-radius:8px;padding:24px;width:100%;max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:600">Edit legacy stats — <span id="stats-modal-driver-name"></span></div>
+      <button class="btn btn-sm" onclick="closeStatsModal()">Close</button>
+    </div>
+    <div style="font-size:12px;color:var(--simr-muted);margin-bottom:16px;line-height:1.6">
+      These are floor values for legacy seasons without full race data. The system uses <strong>whichever is higher</strong> — these numbers or what's calculated live from results.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div><label class="form-label">Championships</label><input type="number" min="0" id="stats-championships" style="width:100%"></div>
+      <div><label class="form-label">Round wins</label><input type="number" min="0" id="stats-round-wins" style="width:100%"></div>
+      <div><label class="form-label">Poles</label><input type="number" min="0" id="stats-poles" style="width:100%"></div>
+      <div><label class="form-label">Wins</label><input type="number" min="0" id="stats-wins" style="width:100%"></div>
+      <div><label class="form-label">Podiums</label><input type="number" min="0" id="stats-podiums" style="width:100%"></div>
+      <div><label class="form-label">Starts</label><input type="number" min="0" id="stats-starts" style="width:100%"></div>
+    </div>
+    <input type="hidden" id="stats-modal-driver-id">
+    <input type="hidden" id="stats-modal-series-id">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-red btn-sm" onclick="saveDriverStats()">Save legacy stats</button>
+      <button class="btn btn-sm" onclick="closeStatsModal()">Cancel</button>
+    </div>
+    <div id="stats-modal-status" style="font-size:12px;color:var(--simr-muted);margin-top:8px"></div>
+  </div>
+</div>
+
+<script type="module" src="/src/app.js"></script>
+</body>
+</html>
