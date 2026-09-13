@@ -2,7 +2,7 @@
 
 ## 1. Configure environment variables
 
-Copy the names from `.env.example` into the Netlify site's environment variables. Use the AC series UUID for `VITE_AC_SERIES_ID`. The service-role key and all password/secret values are server-only.
+Copy the names from `.env.example` into the Netlify site's environment variables. Use the AC series UUID for `VITE_AC_SERIES_ID`. The Supabase secret key and all password/secret values are server-only.
 
 Generate `SIMR_SESSION_SECRET` as a long random value. Choose a new shared admin password; do not reuse any password that appeared in the legacy browser source.
 
