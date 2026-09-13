@@ -1,4 +1,4 @@
-# Deploying v26 to Netlify
+# Deploying SimR to Netlify
 
 ## 1. Configure environment variables
 
