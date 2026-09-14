@@ -1,6 +1,7 @@
 export async function extractResultsFromImage({ imageBase64, mediaType, roster, sessionKind }) {
   const response = await fetch('/.netlify/functions/extract-results', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageBase64, mediaType, roster, sessionKind })
   });

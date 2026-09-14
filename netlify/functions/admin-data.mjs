@@ -18,8 +18,8 @@ export const handler = async event => {
   if (!hasValidSession(event.headers)) return json(401, { error: 'Admin session required' });
 
   const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) return json(500, { error: 'Database admin access is not configured' });
+  const secretKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !secretKey) return json(500, { error: 'Database admin access is not configured' });
 
   let input;
   try { input = JSON.parse(event.body || '{}'); }
@@ -33,14 +33,16 @@ export const handler = async event => {
   if (/\s|#|\?/.test(rawFilter)) return json(400, { error: 'Invalid database filter' });
   const filter = rawFilter ? `?${rawFilter}` : '';
 
+  const headers = {
+    apikey: secretKey,
+    'Content-Type': 'application/json',
+    Prefer: input.prefer || 'return=representation'
+  };
+  if (!secretKey.startsWith('sb_secret_')) headers.Authorization = `Bearer ${secretKey}`;
+
   const response = await fetch(`${supabaseUrl}/rest/v1/${table}${filter}`, {
     method,
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-      Prefer: input.prefer || 'return=representation'
-    },
+    headers,
     body: method === 'DELETE' ? undefined : JSON.stringify(input.body)
   });
 
