@@ -19,7 +19,8 @@ export async function getAdminSession() {
       credentials: 'same-origin',
       cache: 'no-store'
     });
-    return response.ok;
+    const payload = await response.json().catch(() => ({}));
+    return response.ok && payload.authenticated === true;
   } catch {
     return false;
   }
