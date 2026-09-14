@@ -1,16 +1,14 @@
 import { config } from '../config.js';
 import { adminDataRequest } from './admin.js';
+import { createSupabaseHeaders } from './supabase-headers.js';
 
 async function request(path, options = {}) {
   const response = await fetch(`${config.supabaseUrl}/rest/v1/${path}`, {
     ...options,
-    headers: {
-      apikey: config.supabasePublishableKey,
-      Authorization: `Bearer ${config.supabasePublishableKey}`,
-      'Content-Type': 'application/json',
-      Prefer: options.prefer || 'return=representation',
-      ...(options.headers || {})
-    },
+    headers: createSupabaseHeaders(config.supabasePublishableKey, {
+      prefer: options.prefer,
+      headers: options.headers
+    }),
     body: options.body ? JSON.stringify(options.body) : undefined
   });
 
