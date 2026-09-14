@@ -1,5 +1,7 @@
 # Deploying SimR to Netlify
 
+The GitHub repository is public so Netlify's free plan can build connector-authored commits. Runtime credentials remain in Netlify environment variables and must never be committed to Git.
+
 ## 1. Configure environment variables
 
 Copy the names from `.env.example` into the Netlify site's environment variables. Use the AC series UUID for `VITE_AC_SERIES_ID`. The Supabase secret key and all password/secret values are server-only.
