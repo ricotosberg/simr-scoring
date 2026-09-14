@@ -29,6 +29,13 @@ test('creates and verifies an httpOnly admin session', async () => {
     headers: { cookie: loginResponse.headers['Set-Cookie'] }
   });
   assert.equal(sessionResponse.statusCode, 200);
+  assert.equal(JSON.parse(sessionResponse.body).authenticated, true);
+});
+
+test('reports a signed-out visitor without a console-level HTTP error', async () => {
+  const response = await session({ headers: {} });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), { authenticated: false });
 });
 
 test('blocks database mutations without an admin session', async () => {
