@@ -31,6 +31,8 @@ flowchart TD
 
 The Supabase publishable key is expected in the browser. The server secret key, shared admin password, session signing secret, and Anthropic key must never have a `VITE_` prefix or appear in frontend files.
 
+Modern `sb_publishable_` and `sb_secret_` keys are sent through Supabase's `apikey` header. Legacy JWT-based anon and service-role keys additionally use the `Authorization` header.
+
 ## Current migration boundary
 
 The original single-file interface still contains inline event attributes and a large `src/app.js`. The structured project exposes a temporary compatibility surface on `window` so behavior can be moved one feature at a time without a rewrite. New code should not add to that surface.
